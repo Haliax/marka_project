@@ -19,6 +19,8 @@ before_script:
 
 Build with SHA:
   stage: build
+  only:
+    - tags
   script:
     - >
       docker build
@@ -29,29 +31,12 @@ Build with SHA:
     - docker push $IMAGE_TAG
 
 
-Push with Latest:
-  variables:
-    # We do not need GitLab to clone the source code.
-    GIT_STRATEGY: none
-  stage: push
-  only:
-    - main
-  script:
-    # Because we have no guarantee that this job will be picked up by the same runner 
-    # that built the image in the previous step, we pull it again locally
-    - docker pull $IMAGE_TAG
-    - docker tag $IMAGE_TAG $SB_REGISTRY_IMAGE:latest
-    - docker push $SB_REGISTRY_IMAGE:latest
-
-
-# GitLab will start a new pipeline everytime a Git tag is created.
 Push with Tag:
   variables:
-    # Again, we do not need the source code here.
+    # We do not need the source code here.
     GIT_STRATEGY: none
   stage: push
   only:
-    # We want this job to be run on tags only.
     - tags
   script:
     - docker pull $IMAGE_TAG
