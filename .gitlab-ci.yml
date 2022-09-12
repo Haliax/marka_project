@@ -1,0 +1,59 @@
+image: docker:20.10.17
+
+services:
+  - docker:20.10.17-dind
+
+variables:
+  IMAGE_TAG: $SB_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+stages:
+  - build
+  - push
+
+
+before_script:
+  # docker login asks for the password to be passed through stdin for security
+  # we use $CI_REGISTRY_PASSWORD here which is a special variable provided by GitLab
+  # https://docs.gitlab.com/ce/ci/variables/predefined_variables.html
+  - echo -n $SB_REGISTRY_PASSWORD | docker login $SB_REGISTRY -u $SB_REGISTRY_USER --password-stdin
+
+Build with SHA:
+  stage: build
+  script:
+    - >
+      docker build
+      --pull
+      --tag $IMAGE_TAG
+      --build-arg GIT_SHA=$CI_COMMIT_SHORT
+      .
+    - docker push $IMAGE_TAG
+
+
+Push with Latest:
+  variables:
+    # We do not need GitLab to clone the source code.
+    GIT_STRATEGY: none
+  stage: push
+  only:
+    - main
+  script:
+    # Because we have no guarantee that this job will be picked up by the same runner 
+    # that built the image in the previous step, we pull it again locally
+    - docker pull $IMAGE_TAG
+    - docker tag $IMAGE_TAG $SB_REGISTRY_IMAGE:latest
+    - docker push $SB_REGISTRY_IMAGE:latest
+
+
+# GitLab will start a new pipeline everytime a Git tag is created.
+Push with Tag:
+  variables:
+    # Again, we do not need the source code here.
+    GIT_STRATEGY: none
+  stage: push
+  only:
+    # We want this job to be run on tags only.
+    - tags
+  script:
+    - docker pull $IMAGE_TAG
+    - docker tag $IMAGE_TAG $SB_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    - docker push $SB_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
