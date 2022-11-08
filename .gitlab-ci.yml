@@ -15,7 +15,7 @@ before_script:
   # docker login asks for the password to be passed through stdin for security
   # we use $CI_REGISTRY_PASSWORD here which is a special variable provided by GitLab
   # https://docs.gitlab.com/ce/ci/variables/predefined_variables.html
-  - echo -n $SB_REGISTRY_PASSWORD | docker login $SB_REGISTRY -u $SB_REGISTRY_USER --password-stdin
+  - echo -n $SB_REGISTRY_PASSWORD | docker login -u $SB_REGISTRY_USER --password-stdin
 
 Build with SHA:
   stage: build
