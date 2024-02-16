@@ -1,2 +1,2 @@
-FROM openproject/community:12.5.7
+FROM openproject/community:13.2.1
 COPY ./enterprise_token.rb app/models/enterprise_token.rb
