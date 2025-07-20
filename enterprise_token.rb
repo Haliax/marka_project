@@ -1,10 +1,16 @@
+############ If you are using DOCKER all-in-one image, create Dockerfile like:         ################
+############ FROM openproject/openproject:16                                           ################
+############ COPY ./enterprise_token.rb app/models/enterprise_token.rb                 ################
+
+############ If you are runing a manual installation:                                  ################
 ############ REPLACE app/models/enterprise_token.rb in the source code with this file! ################
 ############ also be sure to RESTART OpenProject after replacing the file.             ################
-############ it doesn't show that enterprise mode is enabled in the settings, but all  ################
-############ enterprise mode features, such as KanBan boards, are enabled.             ################
-#-- copyright
+
+############ If using some other set up (eg docker-compose), read the comments on      ################
+############ https://gist.github.com/markasoftware/f5b2e55a2c2e3abb1f9eefcdf0bfff45    ################
+
 # OpenProject is an open source project management software.
-# Copyright (C) 2012-2023 the OpenProject GmbH
+# Copyright (C) the OpenProject GmbH
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License version 3.
@@ -32,16 +38,10 @@
 class EnterpriseToken < ApplicationRecord
   class << self
     def current
-      RequestStore.fetch(:current_ee_token) do
-        set_current_token
-      end
+      self.new
     end
 
-    def table_exists?
-      connection.data_source_exists? table_name
-    end
-
-    def allows_to?(action)
+    def allows_to?(feature)
       true
     end
 
@@ -49,77 +49,156 @@ class EnterpriseToken < ApplicationRecord
       true
     end
 
+    def hide_banners?
+      true
+    end
+
     def show_banners?
       false
     end
 
-    def set_current_token
-      token = EnterpriseToken.order(Arel.sql('created_at DESC')).first
-
-      if token&.token_object
-        token
-      end
+    def banner_type_for(feature:)
+      nil
     end
   end
 
-  validates :encoded_token, presence: true
-  validate :valid_token_object
-  validate :valid_domain
-
-  before_save :unset_current_token
-  before_destroy :unset_current_token
-
-  delegate :will_expire?,
-           :subscriber,
-           :mail,
-           :company,
-           :domain,
-           :issued_at,
-           :starts_at,
-           :expires_at,
-           :reprieve_days,
-           :reprieve_days_left,
-           :restrictions,
-           to: :token_object
-
   def token_object
-    load_token! unless defined?(@token_object)
-    @token_object
+    Class.new do
+      def has_feature?(feature)
+        true
+      end
+
+      def will_expire?
+        false
+      end
+
+      def mail
+        "admin@example.com"
+      end
+
+      def subscriber
+        "markasoftware-free-enterprise-mode"
+      end
+
+      def company
+        "markasoftware"
+      end
+
+      def domain
+        "markasoftware.com"
+      end
+
+      def issued_at
+        Time.zone.today - 1
+      end
+
+      def starts_at
+        Time.zone.today - 1
+      end
+
+      def expires_at
+        Time.zone.today + 1
+      end
+
+      def reprieve_days
+        nil
+      end
+
+      def reprieve_days_left
+        69
+      end
+
+      def restrictions
+        nil
+      end
+
+      def available_features
+        []
+      end
+
+      def plan
+        "markasoftware_free_enterprise_mode"
+      end
+
+      def features
+        []
+      end
+      
+      def version
+        69
+      end
+    end.new
+  end
+
+  def will_expire?
+    false
+  end
+
+  def mail
+    "admin@example.com"
+  end
+
+  def subscriber
+    "markasoftware-free-enterprise-mode"
+  end
+
+  def company
+    "markasoftware"
+  end
+
+  def domain
+    "markasoftware.com"
+  end
+
+  def issued_at
+    Time.zone.today - 1
+  end
+
+  def starts_at
+    Time.zone.today - 1
+  end
+
+  def expires_at
+    Time.zone.today + 1
+  end
+
+  def reprieve_days
+    nil
+  end
+
+  def reprieve_days_left
+    69
+  end
+
+  def restrictions
+    nil
+  end
+
+  def available_features
+    []
+  end
+
+  def plan
+    "markasoftware_free_enterprise_mode"
+  end
+
+  def features
+    []
+  end
+  
+  def version
+    69
   end
 
   def allows_to?(action)
     true
   end
 
-  def unset_current_token
-    # Clear current cache
-    RequestStore.delete :current_ee_token
-  end
-
   def expired?(reprieve: true)
     false
   end
 
-  ##
-  # The domain is only validated for tokens from version 2.0 onwards.
   def invalid_domain?
     false
-  end
-
-  private
-
-  def load_token!
-    @token_object = OpenProject::Token.import(encoded_token)
-  rescue OpenProject::Token::ImportError => e
-    Rails.logger.error "Failed to load EE token: #{e}"
-    nil
-  end
-
-  def valid_token_object
-    errors.add(:encoded_token, :unreadable) unless load_token!
-  end
-
-  def valid_domain
-    errors.add :domain, :invalid if invalid_domain?
   end
 end
