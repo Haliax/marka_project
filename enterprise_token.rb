@@ -45,6 +45,7 @@ class EnterpriseToken < ApplicationRecord
       allowed_action
       baseline_comparison
       board_view
+      calculated_values
       conditional_highlighting
       custom_actions
       custom_field_hierarchies
