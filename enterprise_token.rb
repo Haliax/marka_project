@@ -42,11 +42,14 @@ class EnterpriseToken < ApplicationRecord
     # Unfortunately there is no canonical variable with all the features, so we have to hardcode.
     # Use `rg --pcre2 -INo "(?<=allows_to\?[^:*]:|allowsTo\(')[a-z_]*" | sort -u` to generate this list:
     TRUE_FEATURES = %i[
+      # these have been removed from openproject but we keep them for older version compaibility:
+      board_view
+      conditional_highlighting
+      # these are in latest openproject:
       allowed_action
       baseline_comparison
-      board_view
       calculated_values
-      conditional_highlighting
+      capture_external_links
       custom_actions
       custom_field_hierarchies
       customize_life_cycle
@@ -57,11 +60,18 @@ class EnterpriseToken < ApplicationRecord
       gantt_pdf_export
       internal_comments
       ldap_groups
+      mcp_server
+      meeting_templates
+      multiple_active_sprints
       nextcloud_sso
       one_drive_sharepoint_file_storage
       placeholder_users
+      portfolio_management
+      project_creation_wizard
       readonly_work_packages
+      resource_management
       scim_api
+      sprint_sharing
       sso_auth_providers
       team_planner_view
       time_entry_time_restrictions
@@ -69,6 +79,7 @@ class EnterpriseToken < ApplicationRecord
       work_package_query_relation_columns
       work_package_sharing
       work_package_subject_generation
+      xwiki_integration
     ].freeze
 
     # Not all the methods here are ever actually called outside the enterprise_token.rb file itself
